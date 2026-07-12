@@ -2,7 +2,6 @@ streamlit
 pandas
 numpy
 plotly
-pickle
 streamlit-option-menu
 plotly-express
 openpyxl
