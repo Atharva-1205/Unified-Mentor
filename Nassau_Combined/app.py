@@ -1755,15 +1755,6 @@ def render_factory_optimization():
             st.error("Financial outlook is less stable\n\nApply extra review before making a factory reassignment decision.")
 
     with st.expander("Advanced Analytics & Technical Validation"):
-        st.caption(
-            "This section keeps the supporting analytics available for evaluators and technical users while the executive view stays focused on the business decision."
-        )
-        st.caption(
-            f"Scenario basis: {scenario_scope} shipment history. Live prediction pipeline: leadtime_model.pkl."
-        )
-        st.caption(
-            "Distance analytics are calculated from customer state and province geography together with each factory's observed shipment footprint."
-        )
 
         st.subheader("Before vs After Comparison")
         before_after_top = st.columns(4)
