@@ -1,5 +1,4 @@
 ﻿import pickle
-
 import numpy as np
 import pandas as pd
 import plotly.express as px
@@ -11,6 +10,9 @@ from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
 from streamlit_option_menu import option_menu
+from pathlib import Path
+
+BASE_DIR = Path(__file__).resolve().parent
 
 
 def apply_unified_theme():
@@ -102,7 +104,8 @@ def render_profit_intelligence():
 
     @st.cache_data
     def load_data():
-        df = pd.read_excel("Nassau Candy Distributor.xlsx")
+        file_path = BASE_DIR / "Nassau Candy Distributor.xlsx"
+        df = pd.read_excel(file_path)
         df["Order Date"] = pd.to_datetime(df["Order Date"])
         return df
 
@@ -146,8 +149,16 @@ def render_profit_intelligence():
 
     if product_search:
         filtered_df = filtered_df[
-            filtered_df["Product Name"].str.contains(product_search, case=False)
+            filtered_df["Product Name"].str.contains(
+                product_search,
+                case=False,
+                na=False,
+            )
         ]
+
+    if filtered_df.empty:
+        st.warning("No records match the selected filters. Adjust the filters to continue.")
+        return
 
     product_summary = (
         filtered_df.groupby(
@@ -441,7 +452,7 @@ def render_profit_intelligence():
 def render_shipping_intelligence():
     @st.cache_data
     def load_data():
-        df = pd.read_excel("cleaned_nassau_shipping_data.xlsx")
+        df = pd.read_excel(BASE_DIR / "cleaned_nassau_shipping_data.xlsx")
 
         df["Order Date"] = pd.to_datetime(df["Order Date"])
         df["Ship Date"] = pd.to_datetime(df["Ship Date"])
@@ -515,6 +526,14 @@ def render_shipping_intelligence():
         (filtered_df["Order Date"] <= pd.to_datetime(date_range[1]))
     ]
 
+    if filtered_df.empty:
+        render_page_header(
+            "Shipping Intelligence Decision Support",
+            "Executive view of delivery speed, route performance, and geography"
+        )
+        st.warning("No shipments match the selected filters. Adjust the filters to continue.")
+        return
+
     render_page_header(
         "Shipping Intelligence Decision Support",
         "Executive view of delivery speed, route performance, and geography"
@@ -535,10 +554,14 @@ def render_shipping_intelligence():
         shipments=("Order ID", "count")
     ).reset_index()
 
-    route_perf["Efficiency Score"] = 1 - (
-        (route_perf["avg_lead_time"] - route_perf["avg_lead_time"].min()) /
-        (route_perf["avg_lead_time"].max() - route_perf["avg_lead_time"].min())
-    )
+    lead_time_span = route_perf["avg_lead_time"].max() - route_perf["avg_lead_time"].min()
+    if route_perf.empty or lead_time_span == 0:
+        route_perf["Efficiency Score"] = 1.0
+    else:
+        route_perf["Efficiency Score"] = 1 - (
+            (route_perf["avg_lead_time"] - route_perf["avg_lead_time"].min()) /
+            lead_time_span
+        )
 
     efficiency_score = route_perf["Efficiency Score"].mean()
 
@@ -782,7 +805,7 @@ def percentile_rank(value, population):
 
 @st.cache_data(show_spinner=False)
 def load_factory_optimization_data():
-    df = pd.read_excel("cleaned_nassau_shipping_data.xlsx")
+    df = pd.read_excel(BASE_DIR / "cleaned_nassau_shipping_data.xlsx")
 
     df["Order Date"] = pd.to_datetime(df["Order Date"])
     df["Ship Date"] = pd.to_datetime(df["Ship Date"])
@@ -861,13 +884,17 @@ def load_factory_optimization_data():
 
 @st.cache_resource(show_spinner=False)
 def load_factory_model_artifacts():
+    def load_pickle(file_name):
+        with open(BASE_DIR / file_name, "rb") as artifact_file:
+            return pickle.load(artifact_file)
+
     return {
-        "model": pickle.load(open("leadtime_model.pkl", "rb")),
-        "le_region": pickle.load(open("le_region.pkl", "rb")),
-        "le_ship": pickle.load(open("le_ship.pkl", "rb")),
-        "le_product": pickle.load(open("le_product.pkl", "rb")),
-        "le_factory": pickle.load(open("le_factory.pkl", "rb")),
-        "scaler": pickle.load(open("scaler.pkl", "rb")),
+        "model": load_pickle("leadtime_model.pkl"),
+        "le_region": load_pickle("le_region.pkl"),
+        "le_ship": load_pickle("le_ship.pkl"),
+        "le_product": load_pickle("le_product.pkl"),
+        "le_factory": load_pickle("le_factory.pkl"),
+        "scaler": load_pickle("scaler.pkl"),
     }
 
 
@@ -1900,7 +1927,7 @@ def render_factory_optimization():
 
 
 st.set_page_config(
-    page_title="Unified Intelligence System",
+    page_title="Nassau Candy Distributor",
     layout="wide"
 )
 
